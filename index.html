@@ -17,10 +17,8 @@
         body { font-family: 'Outfit', sans-serif; background-color: #050505; color: #fff; overflow-x: hidden; }
         .font-brand { font-family: 'Unbounded', sans-serif; }
         
-        /* Arka Plan Işıkları */
         .glow { position: fixed; width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(100,100,255,0.08) 0%, transparent 70%); border-radius: 50%; z-index: -1; filter: blur(80px); }
         
-        /* Modern Kartlar */
         .premium-card { 
             background: linear-gradient(145deg, rgba(20,20,20,0.8), rgba(10,10,10,0.9));
             border: 1px solid var(--border);
@@ -28,15 +26,13 @@
             backdrop-filter: blur(20px);
             transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .premium-card:hover { transform: scale(1.02) translateY(-10px); border-color: rgba(255,255,255,0.3); box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+        .premium-card:hover { transform: scale(1.01) translateY(-5px); border-color: rgba(255,255,255,0.3); }
         
-        /* Cemile UI */
         .cemile-chat { background: #000; border: 1px solid #222; border-radius: 30px; }
         .bubble { padding: 12px 18px; border-radius: 20px; font-size: 14px; max-width: 85%; line-height: 1.5; }
         .bubble-bot { background: #fff; color: #000; border-bottom-left-radius: 4px; }
         .bubble-user { background: #222; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
         
-        /* Scroll */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
@@ -52,7 +48,6 @@
     <div class="glow" style="top: -10%; left: -10%;"></div>
     <div class="glow" style="bottom: -10%; right: -10%; background: radial-gradient(circle, rgba(255,100,100,0.05) 0%, transparent 70%);"></div>
 
-    <!-- Navigasyon -->
     <nav class="fixed top-0 w-full z-50 py-8 px-12 flex justify-between items-center mix-blend-difference">
         <h1 class="font-brand text-xs uppercase tracking-[0.4em] font-black">Ayşegül Coşkun</h1>
         <div class="flex gap-10 text-[10px] uppercase tracking-widest font-bold">
@@ -61,7 +56,6 @@
         </div>
     </nav>
 
-    <!-- Header -->
     <header class="pt-52 pb-32 px-6 flex flex-col items-center text-center">
         <div class="relative w-48 h-48 md:w-64 md:h-64 mb-12">
             <div class="absolute inset-0 bg-white opacity-10 rounded-full animate-pulse"></div>
@@ -83,13 +77,11 @@
         <div id="blog-view" class="hidden max-w-4xl mx-auto space-y-40"></div>
     </main>
 
-    <!-- Admin Panel -->
     <div class="admin-trigger" onclick="openAdmin()"><i class="fa-solid fa-code-merge text-xl"></i></div>
 
     <div id="admin-modal" class="hidden fixed inset-0 z-[2000] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
         <div class="w-full max-w-7xl h-[90vh] flex flex-col premium-card overflow-hidden">
             
-            <!-- Auth -->
             <div id="auth-box" class="flex-1 flex flex-col items-center justify-center p-10">
                 <h3 class="font-brand text-2xl mb-8">Erişim Yetkisi</h3>
                 <input type="password" id="auth-pass" class="text-center text-4xl w-64 mb-6 tracking-widest" placeholder="••••">
@@ -97,7 +89,6 @@
                 <button onclick="closeAdmin()" class="mt-8 text-gray-500 text-xs">Kapat</button>
             </div>
 
-            <!-- Dashboard -->
             <div id="panel-box" class="hidden flex-1 flex flex-col overflow-hidden">
                 <div class="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
                     <span class="font-brand text-[10px] tracking-widest uppercase">Kontrol Merkezi v3.0</span>
@@ -106,12 +97,10 @@
 
                 <div class="flex-1 overflow-y-auto p-8 lg:p-12">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                        
-                        <!-- Profil & Post Girişi -->
                         <div class="lg:col-span-4 space-y-12">
                             <div class="space-y-4">
                                 <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Global Kimlik</h4>
-                                <input type="file" id="up-file" class="w-full">
+                                <input type="file" id="up-file" class="w-full text-xs">
                                 <input type="text" id="up-name" placeholder="Kullanıcı Adı">
                                 <textarea id="up-bio" class="h-24 w-full" placeholder="Bio..."></textarea>
                                 <div class="grid grid-cols-2 gap-4">
@@ -129,7 +118,6 @@
                             </div>
                         </div>
 
-                        <!-- Cemile AI Engine -->
                         <div class="lg:col-span-8 flex flex-col h-[700px] cemile-chat">
                             <div class="p-6 border-b border-white/5 flex items-center justify-between">
                                 <div class="flex items-center gap-3">
@@ -144,8 +132,8 @@
                                 </select>
                             </div>
 
-                            <div id="ai-messages" class="flex-1 overflow-y-auto p-8 space-y-6 flex flex-col scrollbar-hide">
-                                <div class="bubble bubble-bot">Selam Ayşegül! Sistemin "b** gibi" olan halini sildim, artık buradayım. 😎 Nasıl bir içerik hazırlayalım? Uzun mu olsun kısa mı?</div>
+                            <div id="ai-messages" class="flex-1 overflow-y-auto p-8 space-y-6 flex flex-col">
+                                <div class="bubble bubble-bot">Selam Ayşegül! Her şey hazır. İçerik üretmeye başlayabiliriz. ✨</div>
                             </div>
 
                             <div class="p-8 space-y-4">
@@ -175,6 +163,7 @@
 
         let isAdmin = false;
         let lastCleanedText = "";
+        let currentPosts = [];
 
         async function init() {
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -193,10 +182,10 @@
             });
 
             db.collection(`artifacts/${appId}/public/data/posts`).orderBy('timestamp', 'desc').onSnapshot(snap => {
-                const posts = [];
-                snap.forEach(doc => posts.push({id: doc.id, ...doc.data()}));
-                document.getElementById('stat-posts').innerText = posts.length;
-                render(posts);
+                currentPosts = [];
+                snap.forEach(doc => currentPosts.push({id: doc.id, ...doc.data()}));
+                document.getElementById('stat-posts').innerText = currentPosts.length;
+                render(currentPosts);
             });
         }
 
@@ -215,18 +204,13 @@
             sendBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i>';
             sendBtn.disabled = true;
 
-            const prompt = `Kullanıcı İsteği: "${userMsg}". 
-            Mod: ${mode}.
-            Sen Cemile'sin. Ayşegül'ün özel asistanısın. 
-            Cevabını verirken önce çok kısa bir yorum yap, sonra sadece hazırladığın içeriği [METIN]etiketi içine[/METIN] yaz. 
-            Eğer mod 'long' ise en az 3 paragraf yaz. 'short' ise 1 cümle yaz.`;
+            const prompt = `Kullanıcı İsteği: "${userMsg}". Mod: ${mode}. Cevabını verirken önce çok kısa bir yorum yap, sonra hazırladığın içeriği [METIN]etiketi içine[/METIN] yaz.`;
 
             const result = await callGemini(prompt);
-            
             const match = result.match(/\[METIN\](.*?)\[\/METIN\]/s);
             lastCleanedText = match ? match[1].trim() : result;
 
-            msgBox.innerHTML += `<div class="bubble bubble-bot">${result.replace(/\[METIN\].*?\[\/METIN\]/s, "<strong>Hazırladığım içerik hazır!</strong>")}</div>`;
+            msgBox.innerHTML += `<div class="bubble bubble-bot">${result.replace(/\[METIN\].*?\[\/METIN\]/s, "<strong>İçerik hazırlandı!</strong>")}</div>`;
             msgBox.scrollTop = msgBox.scrollHeight;
             sendBtn.innerHTML = '<i class="fa-solid fa-bolt"></i>';
             sendBtn.disabled = false;
@@ -240,11 +224,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
-                        systemInstruction: { parts: [{ text: "Adın Cemile. Ayşegül Coşkun'un asistanısın. Zeki, kreatif ve sadıksın." }] }
+                        systemInstruction: { parts: [{ text: "Adın Cemile. Ayşegül'ün asistanısın." }] }
                     })
                 });
                 const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Bağlantı koptu kanka.";
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Hata.";
             } catch (e) { return "Hata!"; }
         }
 
@@ -267,7 +251,7 @@
                             <iframe src="${embedUrl}" class="w-full h-full border-none grayscale group-hover:grayscale-0 transition-all duration-700" scrolling="no"></iframe>
                         </div>
                         <div class="p-6">
-                            <p class="text-xs text-gray-400 line-clamp-3 leading-relaxed mb-4">${p.description}</p>
+                            <p class="text-xs text-gray-400 leading-relaxed mb-4">${p.description}</p>
                             <div class="flex justify-between items-center">
                                 <span class="text-[8px] font-bold uppercase tracking-[0.3em] text-white/20">Ref. ${p.id.substring(0,6)}</span>
                                 ${isAdmin ? `<button onclick="deletePost('${p.id}')" class="text-red-900 hover:text-red-500 text-[10px] uppercase font-bold">Sil</button>` : ''}
@@ -281,7 +265,6 @@
                             <iframe src="${embedUrl}" class="w-full h-full border-none" scrolling="no"></iframe>
                         </div>
                         <div class="space-y-6">
-                            <h3 class="font-brand text-3xl tracking-tighter">${p.description.substring(0,40)}...</h3>
                             <p class="text-xl text-gray-400 font-light leading-loose">${p.description}</p>
                         </div>
                         <div class="h-[1px] bg-white/5 w-full"></div>
@@ -290,11 +273,11 @@
         }
 
         async function pushProfile() {
-            const file = document.getElementById('up-file').files[0];
             const name = document.getElementById('up-name').value;
             const bio = document.getElementById('up-bio').value;
             const followers = document.getElementById('up-followers').value;
             const following = document.getElementById('up-following').value;
+            const file = document.getElementById('up-file').files[0];
             const data = {};
             if(name) data.name = name;
             if(bio) data.bio = bio;
@@ -307,11 +290,11 @@
                 reader.onload = async () => {
                     data.img = reader.result;
                     await db.collection(`artifacts/${appId}/public/data/profile`).doc('main').set(data, {merge: true});
-                    alert("Senkronize edildi.");
+                    alert("Güncellendi.");
                 };
             } else { 
                 await db.collection(`artifacts/${appId}/public/data/profile`).doc('main').set(data, {merge: true}); 
-                alert("Senkronize edildi.");
+                alert("Güncellendi.");
             }
         }
 
@@ -322,22 +305,25 @@
             await db.collection(`artifacts/${appId}/public/data/posts`).add({
                 url, description: desc, timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            document.getElementById('up-url').value = "";
-            document.getElementById('up-desc').value = "";
             alert("Yayınlandı.");
         }
 
         async function deletePost(id) { if(confirm("Siliniyor?")) await db.collection(`artifacts/${appId}/public/data/posts`).doc(id).delete(); }
         function openAdmin() { document.getElementById('admin-modal').classList.remove('hidden'); }
         function closeAdmin() { document.getElementById('admin-modal').classList.add('hidden'); }
+        
         function checkAuth() {
-            if(document.getElementById('auth-pass').value === 'AC2026') {
+            const pass = document.getElementById('auth-pass').value;
+            if(pass === 'AC2026') {
                 isAdmin = true;
-                document.getElementById('auth-box').classList.add('hidden');
+                document.getElementById('auth-box').style.display = 'none';
                 document.getElementById('panel-box').classList.remove('hidden');
-                render([]); // Refresh admin buttons
-            } else { alert("Hata!"); }
+                render(currentPosts); // Sil butonlarını göstermek için tekrar render et
+            } else { 
+                alert("Hatalı Şifre!"); 
+            }
         }
+
         function setView(v) {
             document.getElementById('grid-view').classList.toggle('hidden', v !== 'grid');
             document.getElementById('blog-view').classList.toggle('hidden', v !== 'blog');
