@@ -69,7 +69,7 @@
 
             <div id="panel-box" class="hidden flex-1 flex flex-col overflow-hidden">
                 <div class="p-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/50">
-                    <span class="font-brand text-[9px] tracking-[0.3em] uppercase opacity-50">Kontrol Merkezi v4.0 PRO</span>
+                    <span class="font-brand text-[9px] tracking-[0.3em] uppercase opacity-50">Kontrol Merkezi v4.1 RENDER</span>
                     <button onclick="closeAdmin()" class="hover:rotate-90 transition-transform"><i class="fa-solid fa-xmark"></i></button>
                 </div>
                 <div class="flex-1 overflow-y-auto p-10">
@@ -94,7 +94,7 @@
                         </div>
                         <div class="lg:col-span-8 flex flex-col h-[650px] cemile-chat">
                             <div class="p-5 border-b border-white/5 flex items-center justify-between">
-                                <span class="font-brand text-[10px] uppercase">CEMILE CREATIVE ENGINE</span>
+                                <span class="font-brand text-[10px] uppercase">CEMILE ENGINE</span>
                                 <select id="ai-mode" class="!py-1 !px-4 text-[9px] !rounded-full">
                                     <option value="cool">Minimal & Cool</option>
                                     <option value="poetic">Şairane</option>
@@ -128,17 +128,14 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'aysegul-render-pro';
 
         let isAdmin = false;
-        let lastCleanedText = "";
         let globalPosts = [];
 
         async function init() {
             try {
-                // Render.com gibi ortamlarda auth bekletmesi yaşanabilir, o yüzden async/await şart
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await auth.signInWithCustomToken(__initial_auth_token);
                 } else { await auth.signInAnonymously(); }
                 
-                // Profile
                 db.collection(`artifacts/${appId}/public/data/profile`).doc('main').onSnapshot(doc => {
                     if(doc.exists) {
                         const d = doc.data();
@@ -149,16 +146,26 @@
                     }
                 });
 
-                // Posts
                 db.collection(`artifacts/${appId}/public/data/posts`).orderBy('timestamp', 'desc').onSnapshot(snap => {
                     globalPosts = [];
                     snap.forEach(doc => globalPosts.push({id: doc.id, ...doc.data()}));
                     document.getElementById('stat-posts').innerText = globalPosts.length;
                     render();
-                }, err => {
-                    console.error("Firestore Error:", err);
                 });
             } catch (err) { console.error("Init Error:", err); }
+        }
+
+        function checkAuth() {
+            const pass = document.getElementById('auth-pass').value.trim().toUpperCase();
+            // Render üzerinde küçük/büyük harf veya boşluk sorunlarını aşmak için normalize edildi
+            if(pass === 'AC2026') {
+                isAdmin = true;
+                document.getElementById('auth-box').classList.add('hidden');
+                document.getElementById('panel-box').classList.remove('hidden');
+                render();
+            } else { 
+                alert("Erişim Reddedildi. Şifreyi kontrol et."); 
+            }
         }
 
         function render() {
@@ -177,13 +184,13 @@
                 grid.innerHTML += `
                     <div class="premium-card p-4 group flex flex-col">
                         <div class="aspect-[4/5] rounded-[30px] overflow-hidden bg-zinc-900">
-                            <iframe src="${embedUrl}" class="w-full h-full border-none" scrolling="no" allowtransparency="true"></iframe>
+                            <iframe src="${embedUrl}" class="w-full h-full border-none" scrolling="no"></iframe>
                         </div>
                         <div class="p-5 flex-1 flex flex-col justify-between">
                             <p class="text-[11px] text-gray-500 leading-relaxed italic mb-4">${p.description || ''}</p>
                             <div class="flex justify-between items-center border-t border-white/5 pt-4">
                                 <span class="text-[7px] tracking-widest text-white/20 uppercase">Ac. ${p.id.slice(-4)}</span>
-                                ${isAdmin ? `<button onclick="deletePost('${p.id}')" class="text-red-500 text-[9px] uppercase font-black tracking-tighter hover:bg-red-500/10 px-2 py-1 rounded">SİL</button>` : ''}
+                                ${isAdmin ? `<button onclick="deletePost('${p.id}')" class="text-red-500 text-[9px] uppercase font-black">SİL</button>` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -194,18 +201,8 @@
                             <iframe src="${embedUrl}" class="w-full h-full border-none" scrolling="no"></iframe>
                         </div>
                         <p class="text-2xl text-gray-300 font-light max-w-2xl mx-auto text-center leading-relaxed">"${p.description || ''}"</p>
-                        <div class="w-12 h-[1px] bg-white/10 mx-auto"></div>
                     </div>`;
             });
-        }
-
-        function checkAuth() {
-            if(document.getElementById('auth-pass').value === 'AC2026') {
-                isAdmin = true;
-                document.getElementById('auth-box').style.display = 'none';
-                document.getElementById('panel-box').classList.remove('hidden');
-                render();
-            } else { alert("Geçersiz Erişim."); }
         }
 
         async function talkToCemile() {
@@ -222,21 +219,14 @@
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: `Sen asistan Cemile'sin. Kullanıcı için minimalist ve cool bir metin yaz. [METIN]etiketi içine koy: ${prompt}` }] }]
+                        contents: [{ parts: [{ text: `Minimalist cool bir metin yaz: ${prompt}` }] }]
                     })
                 });
                 const data = await response.json();
                 const text = data.candidates[0].content.parts[0].text;
-                lastCleanedText = text.match(/\[METIN\](.*?)\[\/METIN\]/s)?.[1] || text;
-                box.innerHTML += `<div class="bubble bubble-bot">Tamamdır, şöyle bir şey düşündüm:<br><br>${lastCleanedText}</div>`;
+                box.innerHTML += `<div class="bubble bubble-bot">${text}</div>`;
                 box.scrollTop = box.scrollHeight;
-            } catch(e) { box.innerHTML += `<div class="bubble bubble-bot">Bağlantı kesildi Ayşegül.</div>`; }
-        }
-
-        function extractContent(t) {
-            if(!lastCleanedText) return;
-            if(t === 'post') document.getElementById('up-desc').value = lastCleanedText;
-            if(t === 'bio') document.getElementById('up-bio').value = lastCleanedText;
+            } catch(e) { box.innerHTML += `<div class="bubble bubble-bot">Hata.</div>`; }
         }
 
         async function pushPost() {
@@ -246,7 +236,7 @@
             await db.collection(`artifacts/${appId}/public/data/posts`).add({
                 url, description: desc, timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            alert("Sistem Güncellendi.");
+            alert("Senkronize edildi.");
         }
 
         async function pushProfile() {
@@ -256,10 +246,10 @@
                 followers: document.getElementById('up-followers').value,
                 following: document.getElementById('up-following').value
             }, {merge: true});
-            alert("Profil Senkronize.");
+            alert("Profil güncellendi.");
         }
 
-        async function deletePost(id) { if(confirm("Data silinsin mi?")) await db.collection(`artifacts/${appId}/public/data/posts`).doc(id).delete(); }
+        async function deletePost(id) { if(confirm("Silinsin mi?")) await db.collection(`artifacts/${appId}/public/data/posts`).doc(id).delete(); }
         function openAdmin() { document.getElementById('admin-modal').classList.remove('hidden'); }
         function closeAdmin() { document.getElementById('admin-modal').classList.add('hidden'); }
         function setView(v) {
