@@ -11,40 +11,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@300;600;900&family=Outfit:wght@200;400;700&display=swap');
-        
         :root { --glass: rgba(255, 255, 255, 0.03); --border: rgba(255, 255, 255, 0.1); }
-        
         body { font-family: 'Outfit', sans-serif; background-color: #050505; color: #fff; overflow-x: hidden; }
         .font-brand { font-family: 'Unbounded', sans-serif; }
-        
         .glow { position: fixed; width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(100,100,255,0.08) 0%, transparent 70%); border-radius: 50%; z-index: -1; filter: blur(80px); }
-        
-        .premium-card { 
-            background: linear-gradient(145deg, rgba(20,20,20,0.8), rgba(10,10,10,0.9));
-            border: 1px solid var(--border);
-            border-radius: 40px;
-            backdrop-filter: blur(20px);
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .premium-card:hover { transform: scale(1.01) translateY(-5px); border-color: rgba(255,255,255,0.3); }
-        
+        .premium-card { background: linear-gradient(145deg, rgba(20,20,20,0.8), rgba(10,10,10,0.9)); border: 1px solid var(--border); border-radius: 40px; backdrop-filter: blur(20px); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .premium-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.3); }
         .cemile-chat { background: #000; border: 1px solid #222; border-radius: 30px; }
         .bubble { padding: 12px 18px; border-radius: 20px; font-size: 14px; max-width: 85%; line-height: 1.5; }
         .bubble-bot { background: #fff; color: #000; border-bottom-left-radius: 4px; }
         .bubble-user { background: #222; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
-        
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-
         .admin-trigger { position: fixed; bottom: 40px; right: 40px; width: 64px; height: 64px; background: #fff; color: #000; border-radius: 24px; display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; transition: 0.3s; }
-        .admin-trigger:hover { transform: rotate(15deg) scale(1.1); }
-
         input, textarea, select { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff !important; border-radius: 15px !important; padding: 15px !important; }
-        input:focus { border-color: #fff !important; outline: none; }
     </style>
 </head>
 <body>
-
     <div class="glow" style="top: -10%; left: -10%;"></div>
     <div class="glow" style="bottom: -10%; right: -10%; background: radial-gradient(circle, rgba(255,100,100,0.05) 0%, transparent 70%);"></div>
 
@@ -61,10 +42,8 @@
             <div class="absolute inset-0 bg-white opacity-10 rounded-full animate-pulse"></div>
             <img id="profile-img" src="https://ui-avatars.com/api/?name=A+C&background=fff&color=000" class="relative w-full h-full object-cover rounded-full border-4 border-white grayscale hover:grayscale-0 transition-all duration-700 shadow-[0_0_50px_rgba(255,255,255,0.1)]">
         </div>
-        
         <h2 id="profile-name" class="font-brand text-5xl md:text-7xl mb-6 tracking-tighter lowercase">aysegulco2</h2>
-        <p id="profile-bio" class="text-gray-400 max-w-xl text-lg font-light leading-relaxed">Dijital sanat ve yaşamın minimalist kesişimi.</p>
-        
+        <p id="profile-bio" class="text-gray-400 max-w-xl text-lg font-light leading-relaxed italic">Yükleniyor...</p>
         <div class="flex gap-20 mt-16">
             <div class="text-center"><span id="stat-posts" class="block text-3xl font-brand">0</span><span class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Post</span></div>
             <div class="text-center"><span id="stat-followers" class="block text-3xl font-brand">0</span><span class="text-[9px] uppercase tracking-widest text-gray-500 font-bold">Takipçi</span></div>
@@ -77,73 +56,60 @@
         <div id="blog-view" class="hidden max-w-4xl mx-auto space-y-40"></div>
     </main>
 
-    <div class="admin-trigger" onclick="openAdmin()"><i class="fa-solid fa-code-merge text-xl"></i></div>
+    <div class="admin-trigger" onclick="openAdmin()"><i class="fa-solid fa-terminal text-xl"></i></div>
 
-    <div id="admin-modal" class="hidden fixed inset-0 z-[2000] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
-        <div class="w-full max-w-7xl h-[90vh] flex flex-col premium-card overflow-hidden">
-            
+    <div id="admin-modal" class="hidden fixed inset-0 z-[2000] bg-black/98 backdrop-blur-2xl flex items-center justify-center p-4">
+        <div class="w-full max-w-6xl h-[85vh] flex flex-col premium-card overflow-hidden border-white/20">
             <div id="auth-box" class="flex-1 flex flex-col items-center justify-center p-10">
-                <h3 class="font-brand text-2xl mb-8">Erişim Yetkisi</h3>
-                <input type="password" id="auth-pass" class="text-center text-4xl w-64 mb-6 tracking-widest" placeholder="••••">
-                <button onclick="checkAuth()" class="bg-white text-black px-12 py-4 rounded-full font-bold uppercase tracking-widest hover:scale-95 transition">Doğrula</button>
-                <button onclick="closeAdmin()" class="mt-8 text-gray-500 text-xs">Kapat</button>
+                <h3 class="font-brand text-xl mb-8 tracking-widest">SİSTEM ERİŞİMİ</h3>
+                <input type="password" id="auth-pass" class="text-center text-4xl w-72 mb-6 tracking-widest" placeholder="••••">
+                <button onclick="checkAuth()" class="bg-white text-black px-12 py-4 rounded-full font-black text-xs uppercase tracking-widest hover:scale-95 transition">Sisteme Gir</button>
+                <button onclick="closeAdmin()" class="mt-8 text-gray-600 text-[10px] uppercase font-bold tracking-widest">İptal</button>
             </div>
 
             <div id="panel-box" class="hidden flex-1 flex flex-col overflow-hidden">
-                <div class="p-8 border-b border-white/5 flex justify-between items-center bg-white/5">
-                    <span class="font-brand text-[10px] tracking-widest uppercase">Kontrol Merkezi v3.0</span>
-                    <button onclick="closeAdmin()"><i class="fa-solid fa-xmark"></i></button>
+                <div class="p-6 border-b border-white/5 flex justify-between items-center bg-zinc-900/50">
+                    <span class="font-brand text-[9px] tracking-[0.3em] uppercase opacity-50">Kontrol Merkezi v4.0 PRO</span>
+                    <button onclick="closeAdmin()" class="hover:rotate-90 transition-transform"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-
-                <div class="flex-1 overflow-y-auto p-8 lg:p-12">
+                <div class="flex-1 overflow-y-auto p-10">
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                        <div class="lg:col-span-4 space-y-12">
+                        <div class="lg:col-span-4 space-y-10">
                             <div class="space-y-4">
-                                <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Global Kimlik</h4>
-                                <input type="file" id="up-file" class="w-full text-xs">
-                                <input type="text" id="up-name" placeholder="Kullanıcı Adı">
-                                <textarea id="up-bio" class="h-24 w-full" placeholder="Bio..."></textarea>
+                                <h4 class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">KİMLİK VERİLERİ</h4>
+                                <input type="text" id="up-name" placeholder="Username">
+                                <textarea id="up-bio" class="h-24 w-full" placeholder="Bio metni..."></textarea>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <input type="number" id="up-followers" placeholder="Takipçi">
-                                    <input type="number" id="up-following" placeholder="Takip">
+                                    <input type="number" id="up-followers" placeholder="Followers">
+                                    <input type="number" id="up-following" placeholder="Following">
                                 </div>
-                                <button onclick="pushProfile()" class="w-full bg-blue-600 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest">Kimliği Güncelle</button>
+                                <button onclick="pushProfile()" class="w-full bg-indigo-600/20 border border-indigo-500/30 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-indigo-600/40 transition">Profili Senkronize Et</button>
                             </div>
-
-                            <div class="space-y-4 border-t border-white/5 pt-8">
-                                <h4 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Yeni Yayın</h4>
-                                <input type="text" id="up-url" placeholder="Instagram Link">
-                                <textarea id="up-desc" class="h-40 w-full" placeholder="İçerik açıklaması..."></textarea>
-                                <button onclick="pushPost()" class="w-full bg-white text-black py-4 rounded-2xl font-bold text-xs uppercase tracking-widest">Yayınla</button>
+                            <div class="space-y-4 border-t border-white/5 pt-10">
+                                <h4 class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">YENİ AKIŞ</h4>
+                                <input type="text" id="up-url" placeholder="Instagram URL (p/XYZ...)">
+                                <textarea id="up-desc" class="h-32 w-full" placeholder="Post açıklaması..."></textarea>
+                                <button onclick="pushPost()" class="w-full bg-white text-black py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:opacity-80">Veriyi Gönder</button>
                             </div>
                         </div>
-
-                        <div class="lg:col-span-8 flex flex-col h-[700px] cemile-chat">
-                            <div class="p-6 border-b border-white/5 flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></div>
-                                    <span class="font-brand text-xs uppercase tracking-tighter">Cemile Creative AI</span>
-                                </div>
-                                <select id="ai-mode" class="!py-1 !px-3 text-[10px] !rounded-full">
-                                    <option value="short">Kısa & Öz</option>
-                                    <option value="long">Derin & Uzun</option>
+                        <div class="lg:col-span-8 flex flex-col h-[650px] cemile-chat">
+                            <div class="p-5 border-b border-white/5 flex items-center justify-between">
+                                <span class="font-brand text-[10px] uppercase">CEMILE CREATIVE ENGINE</span>
+                                <select id="ai-mode" class="!py-1 !px-4 text-[9px] !rounded-full">
+                                    <option value="cool">Minimal & Cool</option>
                                     <option value="poetic">Şairane</option>
-                                    <option value="cool">Havalı / Sokak</option>
+                                    <option value="short">Spot</option>
                                 </select>
                             </div>
-
-                            <div id="ai-messages" class="flex-1 overflow-y-auto p-8 space-y-6 flex flex-col">
-                                <div class="bubble bubble-bot">Selam Ayşegül! Her şey hazır. İçerik üretmeye başlayabiliriz. ✨</div>
-                            </div>
-
-                            <div class="p-8 space-y-4">
-                                <div class="relative flex gap-2">
-                                    <input type="text" id="ai-input" placeholder="Cemile'ye talimat ver..." class="flex-1 !mb-0 rounded-full px-8" onkeypress="if(event.key === 'Enter') talkToCemile()">
-                                    <button onclick="talkToCemile()" id="ai-send" class="w-16 h-14 bg-white text-black rounded-2xl flex items-center justify-center hover:scale-110 transition"><i class="fa-solid fa-bolt"></i></button>
+                            <div id="ai-messages" class="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col scroll-smooth"></div>
+                            <div class="p-6 bg-zinc-900/30">
+                                <div class="flex gap-2">
+                                    <input type="text" id="ai-input" placeholder="Cemile'den bir metin iste..." class="flex-1 !mb-0" onkeypress="if(event.key === 'Enter') talkToCemile()">
+                                    <button onclick="talkToCemile()" id="ai-send" class="w-14 bg-white text-black rounded-xl flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
                                 </div>
-                                <div class="flex gap-2 pt-2">
-                                    <button onclick="extractContent('bio')" class="flex-1 bg-white/5 border border-white/10 py-3 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-white/20">Bio'ya Aktar</button>
-                                    <button onclick="extractContent('post')" class="flex-1 bg-white/5 border border-white/10 py-3 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-white/20">Post'a Aktar</button>
+                                <div class="flex gap-2 mt-3">
+                                    <button onclick="extractContent('post')" class="flex-1 bg-white/5 py-2 rounded-lg text-[8px] uppercase font-bold tracking-widest border border-white/5 hover:bg-white/10">Posta Aktar</button>
+                                    <button onclick="extractContent('bio')" class="flex-1 bg-white/5 py-2 rounded-lg text-[8px] uppercase font-bold tracking-widest border border-white/5 hover:bg-white/10">Bioya Aktar</button>
                                 </div>
                             </div>
                         </div>
@@ -159,171 +125,143 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'aysegul-dark-hub';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'aysegul-render-pro';
 
         let isAdmin = false;
         let lastCleanedText = "";
-        let currentPosts = [];
+        let globalPosts = [];
 
         async function init() {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await auth.signInWithCustomToken(__initial_auth_token);
-            } else { await auth.signInAnonymously(); }
-            
-            db.collection(`artifacts/${appId}/public/data/profile`).doc('main').onSnapshot(doc => {
-                if(doc.exists) {
-                    const d = doc.data();
-                    if(d.img) document.getElementById('profile-img').src = d.img;
-                    if(d.name) document.getElementById('profile-name').innerText = d.name;
-                    if(d.bio) document.getElementById('profile-bio').innerText = d.bio;
-                    if(d.followers) document.getElementById('stat-followers').innerText = d.followers;
-                    if(d.following) document.getElementById('stat-following').innerText = d.following;
-                }
-            });
+            try {
+                // Render.com gibi ortamlarda auth bekletmesi yaşanabilir, o yüzden async/await şart
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await auth.signInWithCustomToken(__initial_auth_token);
+                } else { await auth.signInAnonymously(); }
+                
+                // Profile
+                db.collection(`artifacts/${appId}/public/data/profile`).doc('main').onSnapshot(doc => {
+                    if(doc.exists) {
+                        const d = doc.data();
+                        if(d.name) document.getElementById('profile-name').innerText = d.name;
+                        if(d.bio) document.getElementById('profile-bio').innerText = d.bio;
+                        if(d.followers) document.getElementById('stat-followers').innerText = d.followers;
+                        if(d.following) document.getElementById('stat-following').innerText = d.following;
+                    }
+                });
 
-            db.collection(`artifacts/${appId}/public/data/posts`).orderBy('timestamp', 'desc').onSnapshot(snap => {
-                currentPosts = [];
-                snap.forEach(doc => currentPosts.push({id: doc.id, ...doc.data()}));
-                document.getElementById('stat-posts').innerText = currentPosts.length;
-                render(currentPosts);
+                // Posts
+                db.collection(`artifacts/${appId}/public/data/posts`).orderBy('timestamp', 'desc').onSnapshot(snap => {
+                    globalPosts = [];
+                    snap.forEach(doc => globalPosts.push({id: doc.id, ...doc.data()}));
+                    document.getElementById('stat-posts').innerText = globalPosts.length;
+                    render();
+                }, err => {
+                    console.error("Firestore Error:", err);
+                });
+            } catch (err) { console.error("Init Error:", err); }
+        }
+
+        function render() {
+            const grid = document.getElementById('grid-view');
+            const blog = document.getElementById('blog-view');
+            if(!grid || !blog) return;
+            grid.innerHTML = ''; blog.innerHTML = '';
+
+            globalPosts.forEach(p => {
+                let igUrl = p.url;
+                if(!igUrl.includes('instagram.com')) igUrl = `https://www.instagram.com${igUrl.startsWith('/') ? '' : '/'}${igUrl}`;
+                let embedUrl = igUrl.split('?')[0];
+                if(!embedUrl.endsWith('/')) embedUrl += '/';
+                embedUrl += 'embed';
+
+                grid.innerHTML += `
+                    <div class="premium-card p-4 group flex flex-col">
+                        <div class="aspect-[4/5] rounded-[30px] overflow-hidden bg-zinc-900">
+                            <iframe src="${embedUrl}" class="w-full h-full border-none" scrolling="no" allowtransparency="true"></iframe>
+                        </div>
+                        <div class="p-5 flex-1 flex flex-col justify-between">
+                            <p class="text-[11px] text-gray-500 leading-relaxed italic mb-4">${p.description || ''}</p>
+                            <div class="flex justify-between items-center border-t border-white/5 pt-4">
+                                <span class="text-[7px] tracking-widest text-white/20 uppercase">Ac. ${p.id.slice(-4)}</span>
+                                ${isAdmin ? `<button onclick="deletePost('${p.id}')" class="text-red-500 text-[9px] uppercase font-black tracking-tighter hover:bg-red-500/10 px-2 py-1 rounded">SİL</button>` : ''}
+                            </div>
+                        </div>
+                    </div>`;
+
+                blog.innerHTML += `
+                    <div class="space-y-10">
+                        <div class="aspect-video premium-card overflow-hidden bg-zinc-900 border-none shadow-2xl">
+                            <iframe src="${embedUrl}" class="w-full h-full border-none" scrolling="no"></iframe>
+                        </div>
+                        <p class="text-2xl text-gray-300 font-light max-w-2xl mx-auto text-center leading-relaxed">"${p.description || ''}"</p>
+                        <div class="w-12 h-[1px] bg-white/10 mx-auto"></div>
+                    </div>`;
             });
+        }
+
+        function checkAuth() {
+            if(document.getElementById('auth-pass').value === 'AC2026') {
+                isAdmin = true;
+                document.getElementById('auth-box').style.display = 'none';
+                document.getElementById('panel-box').classList.remove('hidden');
+                render();
+            } else { alert("Geçersiz Erişim."); }
         }
 
         async function talkToCemile() {
             const input = document.getElementById('ai-input');
-            const msgBox = document.getElementById('ai-messages');
-            const mode = document.getElementById('ai-mode').value;
-            const userMsg = input.value.trim();
-            if(!userMsg) return;
+            const box = document.getElementById('ai-messages');
+            const prompt = input.value;
+            if(!prompt) return;
 
-            msgBox.innerHTML += `<div class="bubble bubble-user">${userMsg}</div>`;
+            box.innerHTML += `<div class="bubble bubble-user">${prompt}</div>`;
             input.value = "";
-            msgBox.scrollTop = msgBox.scrollHeight;
-
-            const sendBtn = document.getElementById('ai-send');
-            sendBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i>';
-            sendBtn.disabled = true;
-
-            const prompt = `Kullanıcı İsteği: "${userMsg}". Mod: ${mode}. Cevabını verirken önce çok kısa bir yorum yap, sonra hazırladığın içeriği [METIN]etiketi içine[/METIN] yaz.`;
-
-            const result = await callGemini(prompt);
-            const match = result.match(/\[METIN\](.*?)\[\/METIN\]/s);
-            lastCleanedText = match ? match[1].trim() : result;
-
-            msgBox.innerHTML += `<div class="bubble bubble-bot">${result.replace(/\[METIN\].*?\[\/METIN\]/s, "<strong>İçerik hazırlandı!</strong>")}</div>`;
-            msgBox.scrollTop = msgBox.scrollHeight;
-            sendBtn.innerHTML = '<i class="fa-solid fa-bolt"></i>';
-            sendBtn.disabled = false;
-        }
-
-        async function callGemini(prompt) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
             try {
-                const response = await fetch(url, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        systemInstruction: { parts: [{ text: "Adın Cemile. Ayşegül'ün asistanısın." }] }
+                        contents: [{ parts: [{ text: `Sen asistan Cemile'sin. Kullanıcı için minimalist ve cool bir metin yaz. [METIN]etiketi içine koy: ${prompt}` }] }]
                     })
                 });
                 const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Hata.";
-            } catch (e) { return "Hata!"; }
+                const text = data.candidates[0].content.parts[0].text;
+                lastCleanedText = text.match(/\[METIN\](.*?)\[\/METIN\]/s)?.[1] || text;
+                box.innerHTML += `<div class="bubble bubble-bot">Tamamdır, şöyle bir şey düşündüm:<br><br>${lastCleanedText}</div>`;
+                box.scrollTop = box.scrollHeight;
+            } catch(e) { box.innerHTML += `<div class="bubble bubble-bot">Bağlantı kesildi Ayşegül.</div>`; }
         }
 
-        function extractContent(type) {
+        function extractContent(t) {
             if(!lastCleanedText) return;
-            if(type === 'bio') document.getElementById('up-bio').value = lastCleanedText;
-            if(type === 'post') document.getElementById('up-desc').value = lastCleanedText;
-        }
-
-        function render(posts) {
-            const grid = document.getElementById('grid-view');
-            const blog = document.getElementById('blog-view');
-            grid.innerHTML = ''; blog.innerHTML = '';
-            
-            posts.forEach(p => {
-                const embedUrl = p.url.split('?')[0] + 'embed';
-                grid.innerHTML += `
-                    <div class="premium-card p-4 group">
-                        <div class="aspect-[4/5] rounded-[30px] overflow-hidden bg-white/5">
-                            <iframe src="${embedUrl}" class="w-full h-full border-none grayscale group-hover:grayscale-0 transition-all duration-700" scrolling="no"></iframe>
-                        </div>
-                        <div class="p-6">
-                            <p class="text-xs text-gray-400 leading-relaxed mb-4">${p.description}</p>
-                            <div class="flex justify-between items-center">
-                                <span class="text-[8px] font-bold uppercase tracking-[0.3em] text-white/20">Ref. ${p.id.substring(0,6)}</span>
-                                ${isAdmin ? `<button onclick="deletePost('${p.id}')" class="text-red-900 hover:text-red-500 text-[10px] uppercase font-bold">Sil</button>` : ''}
-                            </div>
-                        </div>
-                    </div>`;
-                
-                blog.innerHTML += `
-                    <article class="space-y-12">
-                        <div class="aspect-video premium-card overflow-hidden">
-                            <iframe src="${embedUrl}" class="w-full h-full border-none" scrolling="no"></iframe>
-                        </div>
-                        <div class="space-y-6">
-                            <p class="text-xl text-gray-400 font-light leading-loose">${p.description}</p>
-                        </div>
-                        <div class="h-[1px] bg-white/5 w-full"></div>
-                    </article>`;
-            });
-        }
-
-        async function pushProfile() {
-            const name = document.getElementById('up-name').value;
-            const bio = document.getElementById('up-bio').value;
-            const followers = document.getElementById('up-followers').value;
-            const following = document.getElementById('up-following').value;
-            const file = document.getElementById('up-file').files[0];
-            const data = {};
-            if(name) data.name = name;
-            if(bio) data.bio = bio;
-            if(followers) data.followers = followers;
-            if(following) data.following = following;
-
-            if(file) {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = async () => {
-                    data.img = reader.result;
-                    await db.collection(`artifacts/${appId}/public/data/profile`).doc('main').set(data, {merge: true});
-                    alert("Güncellendi.");
-                };
-            } else { 
-                await db.collection(`artifacts/${appId}/public/data/profile`).doc('main').set(data, {merge: true}); 
-                alert("Güncellendi.");
-            }
+            if(t === 'post') document.getElementById('up-desc').value = lastCleanedText;
+            if(t === 'bio') document.getElementById('up-bio').value = lastCleanedText;
         }
 
         async function pushPost() {
             const url = document.getElementById('up-url').value;
             const desc = document.getElementById('up-desc').value;
-            if(!url || !desc) return;
+            if(!url) return;
             await db.collection(`artifacts/${appId}/public/data/posts`).add({
                 url, description: desc, timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            alert("Yayınlandı.");
+            alert("Sistem Güncellendi.");
         }
 
-        async function deletePost(id) { if(confirm("Siliniyor?")) await db.collection(`artifacts/${appId}/public/data/posts`).doc(id).delete(); }
+        async function pushProfile() {
+            await db.collection(`artifacts/${appId}/public/data/profile`).doc('main').set({
+                name: document.getElementById('up-name').value,
+                bio: document.getElementById('up-bio').value,
+                followers: document.getElementById('up-followers').value,
+                following: document.getElementById('up-following').value
+            }, {merge: true});
+            alert("Profil Senkronize.");
+        }
+
+        async function deletePost(id) { if(confirm("Data silinsin mi?")) await db.collection(`artifacts/${appId}/public/data/posts`).doc(id).delete(); }
         function openAdmin() { document.getElementById('admin-modal').classList.remove('hidden'); }
         function closeAdmin() { document.getElementById('admin-modal').classList.add('hidden'); }
-        
-        function checkAuth() {
-            const pass = document.getElementById('auth-pass').value;
-            if(pass === 'AC2026') {
-                isAdmin = true;
-                document.getElementById('auth-box').style.display = 'none';
-                document.getElementById('panel-box').classList.remove('hidden');
-                render(currentPosts); // Sil butonlarını göstermek için tekrar render et
-            } else { 
-                alert("Hatalı Şifre!"); 
-            }
-        }
-
         function setView(v) {
             document.getElementById('grid-view').classList.toggle('hidden', v !== 'grid');
             document.getElementById('blog-view').classList.toggle('hidden', v !== 'blog');
