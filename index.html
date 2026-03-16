@@ -1,197 +1,463 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ayşegül Coşkun | Dijital Evren</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@300;600;900&family=Outfit:wght@200;400;700&display=swap');
-        body { font-family: 'Outfit', sans-serif; background-color: #050505; color: #fff; margin: 0; }
-        .font-brand { font-family: 'Unbounded', sans-serif; }
-        .premium-card { background: rgba(15,15,15,0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 30px; backdrop-filter: blur(10px); }
-        .admin-trigger { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #fff; color: #000; border-radius: 20px; display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; }
-        input, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: #fff !important; border-radius: 12px !important; padding: 12px !important; width: 100%; }
-        iframe { border-radius: 20px; }
-    </style>
-</head>
-<body>
-    <!-- Nav -->
-    <nav class="fixed top-0 w-full z-50 py-6 px-10 flex justify-between items-center bg-black/50 backdrop-blur-md">
-        <h1 class="font-brand text-[10px] uppercase tracking-[0.3em]">Ayşegül Coşkun</h1>
-        <div class="flex gap-6 text-[10px] font-bold uppercase">
-            <button onclick="location.reload()">Yenile</button>
-        </div>
-    </nav>
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, collection, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { Heart, Grid, X, Zap, Lock, Trash2, CheckCircle, Settings, RefreshCw, Sparkles, MessageSquare, Send, Camera, Image as ImageIcon } from 'lucide-react';
 
-    <!-- Header -->
-    <header class="pt-40 pb-20 px-6 text-center">
-        <h2 id="profile-name" class="font-brand text-4xl md:text-6xl mb-4 lowercase">aysegulco2</h2>
-        <p id="profile-bio" class="text-gray-500 italic max-w-lg mx-auto italic">Yükleniyor...</p>
-    </header>
+// --- FIREBASE & API CONFIG ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'aysegul-ultimate-hub';
+const apiKey = ""; // Sistem tarafından çalışma zamanında sağlanır
 
-    <!-- Feed -->
-    <main class="max-w-6xl mx-auto px-6 pb-40">
-        <div id="grid-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    </main>
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState({
+    profile: {
+      name: "Ayşegül Coşkun",
+      username: "aysegulco2",
+      bio: "✨ Günlük Vlog | Gezi | Yemek | Kombin\n📍 Şanlıurfa\n📩 Pr & İşbirliği",
+      followers: "2,077",
+      following: "212",
+      avatar: "https://images.unsplash.com/photo-1593104547489-5cfb3839a3b5?q=80&w=256&h=256&fit=crop"
+    },
+    posts: []
+  });
 
-    <!-- Admin Panel -->
-    <div class="admin-trigger" onclick="toggleModal(true)"><i class="fa-solid fa-code"></i></div>
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [adminPass, setAdminPass] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  
+  // Gemini States
+  const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState(false);
+  const [isGeneratingAvatar, setIsGeneratingAvatar] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatEndRef = useRef(null);
 
-    <div id="admin-modal" style="display:none;" class="fixed inset-0 z-[2000] bg-black/95 flex items-center justify-center p-4">
-        <div class="w-full max-w-4xl premium-card overflow-hidden flex flex-col max-h-[90vh]">
-            <!-- Login -->
-            <div id="auth-section" class="p-20 text-center">
-                <h3 class="font-brand text-sm mb-6 uppercase">Admin Erişimi</h3>
-                <input type="password" id="admin-pass" class="text-center text-2xl mb-6" placeholder="Şifre">
-                <button onclick="handleLogin()" class="bg-white text-black px-10 py-3 rounded-full font-bold uppercase text-xs">Giriş Yap</button>
-                <button onclick="toggleModal(false)" class="block mx-auto mt-6 text-gray-500 text-xs uppercase">Kapat</button>
-            </div>
+  // Admin Form States
+  const [formProfile, setFormProfile] = useState({});
+  const [newPost, setNewPost] = useState({ url: "", description: "" });
 
-            <!-- Panel -->
-            <div id="panel-section" style="display:none;" class="flex-1 overflow-y-auto p-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <h4 class="font-brand text-[10px] text-gray-400 uppercase">Profil Ayarları</h4>
-                        <input type="text" id="in-name" placeholder="İsim">
-                        <textarea id="in-bio" placeholder="Biyografi"></textarea>
-                        <button onclick="saveProfile()" class="bg-indigo-600 w-full py-3 rounded-xl font-bold text-xs uppercase">Profili Kaydet</button>
-                    </div>
-                    <div class="space-y-4">
-                        <h4 class="font-brand text-[10px] text-gray-400 uppercase">Yeni Paylaşım</h4>
-                        <input type="text" id="in-url" placeholder="Instagram URL (p/...)">
-                        <textarea id="in-desc" placeholder="Post Açıklaması"></textarea>
-                        <button onclick="savePost()" class="bg-white text-black w-full py-3 rounded-xl font-bold text-xs uppercase">Paylaş</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+  // 1. Auth Initializer
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) { 
+        console.error("Auth error:", err); 
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => { 
+      setUser(u); 
+      setLoading(false); 
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Real-time Listeners
+  useEffect(() => {
+    if (!user) return;
+    const profileDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'profile', 'main');
+    
+    const unsubProfile = onSnapshot(profileDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const pData = docSnap.data();
+        setData(prev => ({ ...prev, profile: pData }));
+        setFormProfile(pData);
+      } else {
+        setDoc(profileDocRef, data.profile);
+      }
+    }, (err) => console.error("Profile sync error:", err));
+
+    const postsCollRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+    const unsubPosts = onSnapshot(postsCollRef, (snap) => {
+      const postsList = [];
+      snap.forEach(doc => postsList.push({ id: doc.id, ...doc.data() }));
+      postsList.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      setData(prev => ({ ...prev, posts: postsList }));
+    }, (err) => console.error("Posts sync error:", err));
+
+    return () => { unsubProfile(); unsubPosts(); };
+  }, [user]);
+
+  // Scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  // --- GEMINI API INTEGRATIONS ---
+
+  const callGemini = async (prompt, systemPrompt = "") => {
+    let retries = 0;
+    const delays = [1000, 2000, 4000, 8000, 16000];
+
+    while (retries < 5) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined
+          })
+        });
+
+        if (!response.ok) throw new Error('API Error');
+        const result = await response.json();
+        return result.candidates?.[0]?.content?.parts?.[0]?.text;
+      } catch (err) {
+        retries++;
+        if (retries === 5) throw err;
+        await new Promise(resolve => setTimeout(resolve, delays[retries - 1]));
+      }
+    }
+  };
+
+  const generateBioAI = async () => {
+    setIsGeneratingBio(true);
+    try {
+      const prompt = `Mevcut biyografim: "${data.profile.bio}". Bana buna benzer ama daha etkileyici, modern ve estetik 3 farklı alternatif Türkçe biyografi yaz. Sadece biyografileri aralarında tire ile ayırarak ver.`;
+      const aiBio = await callGemini(prompt, "Sen bir sosyal medya uzmanısın.");
+      if (aiBio) {
+        const options = aiBio.split('-').map(s => s.trim()).filter(s => s.length > 5);
+        setFormProfile(prev => ({ ...prev, bio: options[0] || prev.bio }));
+      }
+    } catch (e) { console.error(e); }
+    setIsGeneratingBio(false);
+  };
+
+  const generateAvatarIdea = async () => {
+    setIsGeneratingAvatar(true);
+    try {
+      const prompt = `Ben bir lifestyle bloggerıyım. Urfa'da yaşıyorum. Blogum estetik ve modern. Bana profil fotoğrafım için bir Unsplash URL'si veya görsel açıklaması öner. Sadece bir adet kaliteli stok görsel linki (Unsplash) veya estetik bir tanım ver.`;
+      const aiAvatar = await callGemini(prompt, "Sen bir görsel yönetmensin.");
+      // Basitçe bir placeholder veya eğer link verdiyse onu yakalamaya çalışıyoruz
+      if (aiAvatar && aiAvatar.includes('http')) {
+        const link = aiAvatar.match(/\bhttps?:\/\/\S+/gi)?.[0];
+        if (link) setFormProfile(prev => ({ ...prev, avatar: link }));
+      }
+    } catch (e) { console.error(e); }
+    setIsGeneratingAvatar(false);
+  };
+
+  const generateCaptionAI = async () => {
+    if (!newPost.description) return;
+    setIsGeneratingCaption(true);
+    try {
+      const prompt = `Şu konu hakkında etkileyici, emojili ve kısa bir Instagram açıklaması yaz: "${newPost.description}". Sadece açıklamayı ver.`;
+      const aiCaption = await callGemini(prompt, "Sen bir lifestyle bloggerısın.");
+      if (aiCaption) setNewPost(prev => ({ ...prev, description: aiCaption }));
+    } catch (e) { console.error(e); }
+    setIsGeneratingCaption(false);
+  };
+
+  const handleChat = async () => {
+    if (!chatInput.trim()) return;
+    const userMsg = { role: 'user', text: chatInput };
+    setChatMessages(prev => [...prev, userMsg]);
+    setChatInput("");
+    setIsChatLoading(true);
+
+    try {
+      const context = `Adım Ayşegül Coşkun. Şanlıurfa'da yaşıyorum. Blogumda gezi, yemek ve kombin paylaşıyorum. Takipçi sayım ${data.profile.followers}.`;
+      const prompt = `Kullanıcı sorusu: "${chatInput}"\n\nBlog sahibi Ayşegül gibi samimi, enerjik ve Urfalı birinin ağzından cevap ver.`;
+      const aiReply = await callGemini(prompt, `Sen Ayşegül Coşkun'un yapay zeka asistanısın. Şu bilgilere sahipsin: ${context}`);
+      
+      setChatMessages(prev => [...prev, { role: 'ai', text: aiReply || "Şu an cevap veremiyorum canım, sonra tekrar dene! ✨" }]);
+    } catch (e) {
+      setChatMessages(prev => [...prev, { role: 'ai', text: "Bir hata oluştu, sistemlerimi kontrol ediyorum. 🛠️" }]);
+    }
+    setIsChatLoading(false);
+  };
+
+  // --- CORE ACTIONS ---
+  const handleLogin = () => {
+    if (adminPass.toUpperCase() === "AC2026") setIsAuthorized(true);
+    else setAdminPass("");
+  };
+
+  const saveProfile = async () => {
+    if (!isAuthorized) return;
+    const profileDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'profile', 'main');
+    try { await updateDoc(profileDocRef, formProfile); } catch (e) { console.error(e); }
+  };
+
+  const addPost = async () => {
+    if (!isAuthorized || !newPost.url) return;
+    const postsCollRef = collection(db, 'artifacts', appId, 'public', 'data', 'posts');
+    let cleanUrl = newPost.url.trim().split('/p/')[1]?.split('/')[0] || newPost.url.trim().replace(/\//g, '');
+    try {
+      await addDoc(postsCollRef, {
+        url: cleanUrl,
+        description: newPost.description,
+        timestamp: serverTimestamp(),
+        likes: Math.floor(Math.random() * 500) + 100
+      });
+      setNewPost({ url: "", description: "" });
+    } catch (e) { console.error(e); }
+  };
+
+  const deletePost = async (id) => {
+    if(!isAuthorized) return;
+    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'posts', id)); } catch (e) { console.error(e); }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center space-y-4">
+      <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+      <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-500">Sistem Hazırlanıyor...</p>
     </div>
+  );
 
-    <script>
-        // Yapılandırma
-        const firebaseConfig = JSON.parse(__firebase_config);
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'aysegul_ultimate_v1'; 
+  return (
+    <div className="min-h-screen bg-[#050505] text-white selection:bg-indigo-500/30 font-sans">
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full z-50 py-6 px-8 md:px-12 flex justify-between items-center bg-black/60 backdrop-blur-xl border-b border-white/5">
+        <h1 className="text-[10px] uppercase tracking-[0.4em] font-black">Ayşegül Coşkun</h1>
+        <div className="flex gap-8 text-[9px] font-bold uppercase tracking-widest text-zinc-400">
+          <button className="hover:text-white transition cursor-pointer">Ana Sayfa</button>
+          <button onClick={() => window.location.reload()} className="hover:text-white transition cursor-pointer">Yenile</button>
+        </div>
+      </nav>
 
-        let userReady = false;
-        let isAdmin = false;
+      {/* Hero Header */}
+      <header className="pt-48 pb-24 px-6 text-center max-w-4xl mx-auto">
+        <div className="relative inline-block p-[2px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mb-8 shadow-2xl shadow-indigo-500/20">
+          <img src={data.profile.avatar} className="w-32 h-32 rounded-full border-4 border-black object-cover" alt="Profile" />
+          <div className="absolute -bottom-2 -right-2 bg-indigo-500 p-2 rounded-lg shadow-lg">
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+        </div>
+        <h2 className="text-5xl md:text-7xl mb-6 tracking-tighter lowercase flex items-center justify-center gap-2 font-bold">
+          {data.profile.username}
+          <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-blue-400 fill-blue-400/10" />
+        </h2>
+        <p className="text-zinc-400 text-lg md:text-xl font-light leading-relaxed max-w-2xl mx-auto italic whitespace-pre-line px-4">
+          {data.profile.bio}
+        </p>
+        
+        <div className="flex justify-center gap-12 mt-12 border-t border-white/5 pt-12">
+          <div className="group cursor-default">
+            <span className="block text-2xl font-bold group-hover:text-indigo-400 transition">{data.posts.length}</span>
+            <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold">Paylaşım</span>
+          </div>
+          <div className="group cursor-default">
+            <span className="block text-2xl font-bold group-hover:text-purple-400 transition">{data.profile.followers}</span>
+            <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold">Takipçi</span>
+          </div>
+        </div>
+      </header>
 
-        async function init() {
-            try {
-                // KURAL: Önce Auth, sonra Firestore
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await auth.signInWithCustomToken(__initial_auth_token);
-                } else {
-                    await auth.signInAnonymously();
-                }
+      {/* Gallery Grid */}
+      <main className="max-w-7xl mx-auto px-6 pb-40">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {data.posts.map((post) => (
+            <div key={post.id} className="p-5 group bg-zinc-900/40 border border-white/5 rounded-[32px] backdrop-blur-md hover:border-white/20 transition-all duration-500 hover:-translate-y-2">
+              <div className="overflow-hidden rounded-[24px] bg-black aspect-[4/5] relative">
+                <iframe 
+                  src={`https://www.instagram.com/p/${post.url}/embed`} 
+                  className="w-full h-full border-none pointer-events-auto" 
+                  scrolling="no"
+                  title={`post-${post.id}`}
+                ></iframe>
+                {isAuthorized && (
+                  <button onClick={() => deletePost(post.id)} className="absolute top-4 right-4 p-3 bg-red-500/90 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-10">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <div className="mt-6 px-2 flex flex-col justify-between min-h-[100px]">
+                <p className="text-[13px] text-zinc-400 leading-relaxed font-light italic flex-grow">
+                  "{post.description || 'Görsel içeriği.'}"
+                </p>
+                <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-zinc-600">
+                   <div className="flex items-center gap-2">
+                     <Heart className="w-3 h-3" />
+                     <span className="text-[10px] font-bold">{post.likes || 0}</span>
+                   </div>
+                   <span className="text-[8px] uppercase font-black tracking-widest opacity-30">{post.id.slice(-6)}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {/* --- FLOATING CHAT BOT --- */}
+      <div className={`fixed bottom-28 right-8 w-80 bg-zinc-900/90 border border-white/10 rounded-[24px] shadow-2xl backdrop-blur-xl transition-all duration-500 transform z-[150] overflow-hidden ${isChatOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-0 opacity-0 translate-y-10'}`}>
+        <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+             <span className="text-[10px] font-black uppercase tracking-widest">Ayşegül Bot ✨</span>
+          </div>
+          <button onClick={() => setIsChatOpen(false)}><X className="w-4 h-4 text-zinc-500" /></button>
+        </div>
+        <div className="h-64 overflow-y-auto p-4 space-y-4">
+          {chatMessages.length === 0 && (
+            <p className="text-[11px] text-zinc-500 text-center py-10">Selam! Ayşegül hakkında ne bilmek istersin? Mesela Urfa'da nerede yemek yenir sorabilirsin! 🥘</p>
+          )}
+          {chatMessages.map((m, i) => (
+            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] p-3 rounded-2xl text-[11px] ${m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-zinc-300'}`}>
+                {m.text}
+              </div>
+            </div>
+          ))}
+          {isChatLoading && <div className="text-[10px] text-zinc-500 animate-pulse italic">Yazıyor...</div>}
+          <div ref={chatEndRef} />
+        </div>
+        <div className="p-4 border-t border-white/10 flex gap-2">
+          <input 
+            type="text" 
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleChat()}
+            placeholder="Mesaj yaz..."
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-indigo-500"
+          />
+          <button onClick={handleChat} className="bg-white text-black p-2 rounded-xl"><Send className="w-4 h-4" /></button>
+        </div>
+      </div>
+
+      {/* Admin & Chat Triggers */}
+      <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-[100]">
+        <button 
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
+        >
+          <MessageSquare className="w-6 h-6" />
+        </button>
+        <button 
+          onClick={() => setIsAdminOpen(true)}
+          className="w-14 h-14 bg-white text-black rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
+        >
+          <Zap className="w-6 h-6 fill-current" />
+        </button>
+      </div>
+
+      {/* Admin Modal */}
+      {isAdminOpen && (
+        <div className="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl bg-zinc-900/50 border border-white/10 rounded-[40px] overflow-hidden flex flex-col max-h-[90vh] shadow-2xl">
+            {!isAuthorized ? (
+              <div className="p-12 md:p-24 text-center">
+                <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-inner">
+                  <Lock className="w-8 h-8 text-white/50" />
+                </div>
+                <h3 className="text-[10px] mb-8 tracking-[0.4em] uppercase text-zinc-500 font-bold">Güvenli Bölge Girişi</h3>
+                <input 
+                  type="password" 
+                  value={adminPass}
+                  onChange={(e) => setAdminPass(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  className="w-full max-w-xs mx-auto block bg-white/5 border border-white/10 text-center text-3xl mb-12 tracking-[0.3em] py-4 rounded-2xl outline-none focus:border-indigo-500 transition-all font-light text-white" 
+                  placeholder="••••"
+                />
+                <button onClick={handleLogin} className="bg-white text-black py-4 px-12 rounded-2xl font-bold uppercase text-[10px] tracking-widest mx-auto block">Sistemi Aç</button>
+                <button onClick={() => setIsAdminOpen(false)} className="mt-8 text-zinc-600 text-[10px] block mx-auto uppercase tracking-widest font-bold">Vazgeç</button>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                  <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-400 font-bold">Yönetim Paneli ✨ AI Powered</span>
+                  <button onClick={() => setIsAdminOpen(false)} className="hover:rotate-90 transition p-2 text-zinc-500"><X /></button>
+                </div>
                 
-                userReady = true;
-                startListeners();
-            } catch (e) { 
-                console.error("Auth hatası:", e); 
-            }
-        }
+                <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                    {/* Profil Düzenleme */}
+                    <div className="space-y-8">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                        <div className="flex items-center gap-4">
+                           <Settings className="w-5 h-5 text-indigo-400" />
+                           <h4 className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Global Yapılandırma</h4>
+                        </div>
+                        <div className="flex gap-2">
+                            <button 
+                            onClick={generateBioAI} 
+                            disabled={isGeneratingBio}
+                            className="flex items-center gap-2 text-[8px] bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20 hover:bg-indigo-500/20 transition disabled:opacity-50"
+                            >
+                            <Sparkles className={`w-3 h-3 ${isGeneratingBio ? 'animate-spin' : ''}`} />
+                            {isGeneratingBio ? 'ÜRETİLİYOR...' : '✨ BİYO'}
+                            </button>
+                            <button 
+                            onClick={generateAvatarIdea} 
+                            disabled={isGeneratingAvatar}
+                            className="flex items-center gap-2 text-[8px] bg-pink-500/10 text-pink-400 px-3 py-1 rounded-full border border-pink-500/20 hover:bg-pink-500/20 transition disabled:opacity-50"
+                            >
+                            <Camera className={`w-3 h-3 ${isGeneratingAvatar ? 'animate-spin' : ''}`} />
+                            {isGeneratingAvatar ? 'ARANIYOR...' : '✨ FOTO ÖNER'}
+                            </button>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                           <label className="text-[9px] uppercase text-zinc-600 font-bold">Profil Fotoğrafı URL</label>
+                           <div className="flex gap-2">
+                             <div className="w-12 h-12 rounded-xl border border-white/10 overflow-hidden flex-shrink-0 bg-black">
+                                <img src={formProfile.avatar} className="w-full h-full object-cover" />
+                             </div>
+                             <input type="text" value={formProfile.avatar || ''} onChange={(e) => setFormProfile({...formProfile, avatar: e.target.value})} className="flex-1 bg-white/5 border border-white/10 p-4 rounded-2xl text-[10px] outline-none" placeholder="https://..." />
+                           </div>
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[9px] uppercase text-zinc-600 font-bold">Görünür İsim</label>
+                           <input type="text" value={formProfile.name || ''} onChange={(e) => setFormProfile({...formProfile, name: e.target.value})} className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm outline-none" />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[9px] uppercase text-zinc-600 font-bold">Biyografi</label>
+                           <textarea value={formProfile.bio || ''} onChange={(e) => setFormProfile({...formProfile, bio: e.target.value})} className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm h-32 outline-none resize-none" />
+                        </div>
+                        <button onClick={saveProfile} className="w-full bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-600 hover:text-white transition-all">Senkronize Et</button>
+                      </div>
+                    </div>
 
-        function startListeners() {
-            if(!userReady) return;
+                    {/* İçerik Ekleme */}
+                    <div className="space-y-8">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                        <div className="flex items-center gap-4">
+                          <Grid className="w-5 h-5 text-purple-400" />
+                          <h4 className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Akışa İçerik Ekle</h4>
+                        </div>
+                        <button 
+                          onClick={generateCaptionAI}
+                          disabled={isGeneratingCaption || !newPost.description}
+                          className="flex items-center gap-2 text-[8px] bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full border border-purple-500/20 hover:bg-purple-500/20 transition disabled:opacity-50"
+                        >
+                          <Sparkles className={`w-3 h-3 ${isGeneratingCaption ? 'animate-spin' : ''}`} />
+                          {isGeneratingCaption ? 'DÜZENLENİYOR...' : '✨ SİHİRBAZ'}
+                        </button>
+                      </div>
+                      <div className="space-y-4">
+                        <input type="text" value={newPost.url} onChange={(e) => setNewPost({...newPost, url: e.target.value})} placeholder="Instagram URL / ID" className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-purple-500 transition" />
+                        <textarea value={newPost.description} onChange={(e) => setNewPost({...newPost, description: e.target.value})} placeholder="İçerik anahtar kelimeleri veya taslak açıklama..." className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm h-32 outline-none focus:border-purple-500 transition resize-none" />
+                        <button onClick={addPost} className="w-full bg-white text-black py-4 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all shadow-xl">Veri Akışına Bas</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-            // Profil Verisi - KURAL 1: Tam yol kullanımı
-            db.collection('artifacts').doc(appId).collection('public').doc('data').collection('profile').doc('main')
-                .onSnapshot(doc => {
-                    if(doc.exists) {
-                        const d = doc.data();
-                        document.getElementById('profile-name').innerText = d.name || 'aysegulco2';
-                        document.getElementById('profile-bio').innerText = d.bio || '';
-                        document.getElementById('in-name').value = d.name || '';
-                        document.getElementById('in-bio').value = d.bio || '';
-                    }
-                }, err => console.error("Profil dinleme hatası:", err));
-
-            // Postlar - KURAL 1: Tam yol kullanımı
-            db.collection('artifacts').doc(appId).collection('public').doc('data').collection('posts')
-                .onSnapshot(snap => {
-                    const grid = document.getElementById('grid-view');
-                    grid.innerHTML = '';
-                    // Not: orderBy() bazen index gerektirdiği için JS tarafında sıralama yapıyoruz (Kural 2)
-                    let posts = [];
-                    snap.forEach(doc => posts.push({id: doc.id, ...doc.data()}));
-                    
-                    posts.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-
-                    posts.forEach(p => {
-                        let igUrl = p.url;
-                        if(!igUrl.includes('instagram.com')) igUrl = `https://www.instagram.com/p/${igUrl.replace(/\//g, '')}/`;
-                        const embed = igUrl.split('?')[0] + 'embed';
-
-                        grid.innerHTML += `
-                            <div class="premium-card p-4 space-y-4">
-                                <div class="overflow-hidden rounded-[20px] bg-zinc-900 aspect-[4/5]">
-                                    <iframe src="${embed}" class="w-full h-full border-none" scrolling="no"></iframe>
-                                </div>
-                                <p class="text-xs text-gray-400 px-2 italic">${p.description || ''}</p>
-                                ${isAdmin ? `<button onclick="deletePost('${p.id}')" class="text-[9px] text-red-500 font-bold uppercase p-2">SİL</button>` : ''}
-                            </div>
-                        `;
-                    });
-                }, err => console.error("Post dinleme hatası:", err));
-        }
-
-        function handleLogin() {
-            const p = document.getElementById('admin-pass').value.trim().toUpperCase();
-            if(p === 'AC2026') {
-                isAdmin = true;
-                document.getElementById('auth-section').style.display = 'none';
-                document.getElementById('panel-section').style.display = 'block';
-                startListeners(); // Admin butonlarını göstermek için tekrar çiz
-            } else { 
-                alert("Hatalı!"); 
-            }
-        }
-
-        async function saveProfile() {
-            if(!userReady) return;
-            try {
-                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('profile').doc('main').set({
-                    name: document.getElementById('in-name').value,
-                    bio: document.getElementById('in-bio').value
-                }, {merge: true});
-                alert("Güncellendi!");
-            } catch(e) { console.error(e); }
-        }
-
-        async function savePost() {
-            const url = document.getElementById('in-url').value;
-            if(!url || !userReady) return;
-            try {
-                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('posts').add({
-                    url: url,
-                    description: document.getElementById('in-desc').value,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                document.getElementById('in-url').value = '';
-                document.getElementById('in-desc').value = '';
-                alert("Yayınlandı!");
-            } catch(e) { console.error(e); }
-        }
-
-        async function deletePost(id) {
-            if(confirm("Silmek istediğine emin misin?")) {
-                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('posts').doc(id).delete();
-            }
-        }
-
-        function toggleModal(show) {
-            document.getElementById('admin-modal').style.display = show ? 'flex' : 'none';
-        }
-
-        window.onload = init;
-    </script>
-</body>
-</html>
+      <footer className="py-20 text-center opacity-30">
+        <p className="text-[8px] uppercase tracking-[0.4em]">© 2026 Ayşegül Coşkun | Ultimate Hub ✨ AI Enhanced</p>
+      </footer>
+    </div>
+  );
+}
