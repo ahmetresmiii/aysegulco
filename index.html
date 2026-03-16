@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, doc, onSnapshot, updateDoc, setDoc, collection, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { Heart, Grid, X, Zap, Lock, Trash2, CheckCircle, Settings, RefreshCw, Sparkles, MessageSquare, Send, Camera, Image as ImageIcon } from 'lucide-react';
+import { Heart, Grid, X, Zap, Lock, Trash2, CheckCircle, Settings, RefreshCw, Sparkles, MessageSquare, Send, Camera } from 'lucide-react';
 
 // --- FIREBASE & API CONFIG ---
 const firebaseConfig = JSON.parse(__firebase_config);
@@ -10,7 +10,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'aysegul-ultimate-hub';
-const apiKey = ""; // Sistem tarafından çalışma zamanında sağlanır
+const apiKey = ""; 
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -29,7 +29,10 @@ export default function App() {
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [adminPass, setAdminPass] = useState("");
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(() => {
+    // Render gibi ortamlarda sayfa yenilendiğinde yetkiyi kaybetmemek için localstorage kontrolü
+    return localStorage.getItem('aysegul_admin_auth') === 'true';
+  });
   
   // Gemini States
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
@@ -45,7 +48,6 @@ export default function App() {
   const [formProfile, setFormProfile] = useState({});
   const [newPost, setNewPost] = useState({ url: "", description: "" });
 
-  // 1. Auth Initializer
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -66,7 +68,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Real-time Listeners
   useEffect(() => {
     if (!user) return;
     const profileDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'profile', 'main');
@@ -92,17 +93,13 @@ export default function App() {
     return () => { unsubProfile(); unsubPosts(); };
   }, [user]);
 
-  // Scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
-  // --- GEMINI API INTEGRATIONS ---
-
   const callGemini = async (prompt, systemPrompt = "") => {
     let retries = 0;
     const delays = [1000, 2000, 4000, 8000, 16000];
-
     while (retries < 5) {
       try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
@@ -113,7 +110,6 @@ export default function App() {
             systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined
           })
         });
-
         if (!response.ok) throw new Error('API Error');
         const result = await response.json();
         return result.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -125,67 +121,21 @@ export default function App() {
     }
   };
 
-  const generateBioAI = async () => {
-    setIsGeneratingBio(true);
-    try {
-      const prompt = `Mevcut biyografim: "${data.profile.bio}". Bana buna benzer ama daha etkileyici, modern ve estetik 3 farklı alternatif Türkçe biyografi yaz. Sadece biyografileri aralarında tire ile ayırarak ver.`;
-      const aiBio = await callGemini(prompt, "Sen bir sosyal medya uzmanısın.");
-      if (aiBio) {
-        const options = aiBio.split('-').map(s => s.trim()).filter(s => s.length > 5);
-        setFormProfile(prev => ({ ...prev, bio: options[0] || prev.bio }));
-      }
-    } catch (e) { console.error(e); }
-    setIsGeneratingBio(false);
-  };
-
-  const generateAvatarIdea = async () => {
-    setIsGeneratingAvatar(true);
-    try {
-      const prompt = `Ben bir lifestyle bloggerıyım. Urfa'da yaşıyorum. Blogum estetik ve modern. Bana profil fotoğrafım için bir Unsplash URL'si veya görsel açıklaması öner. Sadece bir adet kaliteli stok görsel linki (Unsplash) veya estetik bir tanım ver.`;
-      const aiAvatar = await callGemini(prompt, "Sen bir görsel yönetmensin.");
-      // Basitçe bir placeholder veya eğer link verdiyse onu yakalamaya çalışıyoruz
-      if (aiAvatar && aiAvatar.includes('http')) {
-        const link = aiAvatar.match(/\bhttps?:\/\/\S+/gi)?.[0];
-        if (link) setFormProfile(prev => ({ ...prev, avatar: link }));
-      }
-    } catch (e) { console.error(e); }
-    setIsGeneratingAvatar(false);
-  };
-
-  const generateCaptionAI = async () => {
-    if (!newPost.description) return;
-    setIsGeneratingCaption(true);
-    try {
-      const prompt = `Şu konu hakkında etkileyici, emojili ve kısa bir Instagram açıklaması yaz: "${newPost.description}". Sadece açıklamayı ver.`;
-      const aiCaption = await callGemini(prompt, "Sen bir lifestyle bloggerısın.");
-      if (aiCaption) setNewPost(prev => ({ ...prev, description: aiCaption }));
-    } catch (e) { console.error(e); }
-    setIsGeneratingCaption(false);
-  };
-
-  const handleChat = async () => {
-    if (!chatInput.trim()) return;
-    const userMsg = { role: 'user', text: chatInput };
-    setChatMessages(prev => [...prev, userMsg]);
-    setChatInput("");
-    setIsChatLoading(true);
-
-    try {
-      const context = `Adım Ayşegül Coşkun. Şanlıurfa'da yaşıyorum. Blogumda gezi, yemek ve kombin paylaşıyorum. Takipçi sayım ${data.profile.followers}.`;
-      const prompt = `Kullanıcı sorusu: "${chatInput}"\n\nBlog sahibi Ayşegül gibi samimi, enerjik ve Urfalı birinin ağzından cevap ver.`;
-      const aiReply = await callGemini(prompt, `Sen Ayşegül Coşkun'un yapay zeka asistanısın. Şu bilgilere sahipsin: ${context}`);
-      
-      setChatMessages(prev => [...prev, { role: 'ai', text: aiReply || "Şu an cevap veremiyorum canım, sonra tekrar dene! ✨" }]);
-    } catch (e) {
-      setChatMessages(prev => [...prev, { role: 'ai', text: "Bir hata oluştu, sistemlerimi kontrol ediyorum. 🛠️" }]);
-    }
-    setIsChatLoading(false);
-  };
-
-  // --- CORE ACTIONS ---
   const handleLogin = () => {
-    if (adminPass.toUpperCase() === "AC2026") setIsAuthorized(true);
-    else setAdminPass("");
+    const correctPass = "AC2026";
+    if (adminPass.trim().toUpperCase() === correctPass) {
+      setIsAuthorized(true);
+      localStorage.setItem('aysegul_admin_auth', 'true');
+    } else {
+      setAdminPass("");
+      // Hatalı şifre durumunda kullanıcıyı bilgilendir
+      console.log("Hatalı şifre denemesi");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthorized(false);
+    localStorage.removeItem('aysegul_admin_auth');
   };
 
   const saveProfile = async () => {
@@ -214,80 +164,77 @@ export default function App() {
     try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'posts', id)); } catch (e) { console.error(e); }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center space-y-4">
-      <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
-      <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-500">Sistem Hazırlanıyor...</p>
-    </div>
-  );
+  const handleChat = async () => {
+    if (!chatInput.trim()) return;
+    const userMsg = { role: 'user', text: chatInput };
+    setChatMessages(prev => [...prev, userMsg]);
+    setChatInput("");
+    setIsChatLoading(true);
+    try {
+      const context = `Adım Ayşegül Coşkun. Şanlıurfa'da yaşıyorum. Blogumda gezi, yemek ve kombin paylaşıyorum. Takipçi sayım ${data.profile.followers}.`;
+      const prompt = `Kullanıcı sorusu: "${chatInput}"\n\nBlog sahibi Ayşegül gibi samimi birinin ağzından cevap ver.`;
+      const aiReply = await callGemini(prompt, `Sen Ayşegül'ün yapay zeka asistanısın: ${context}`);
+      setChatMessages(prev => [...prev, { role: 'ai', text: aiReply || "Şu an cevap veremiyorum." }]);
+    } catch (e) {
+      setChatMessages(prev => [...prev, { role: 'ai', text: "Hata oluştu." }]);
+    }
+    setIsChatLoading(false);
+  };
+
+  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center"><RefreshCw className="animate-spin text-indigo-500" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-indigo-500/30 font-sans">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 py-6 px-8 md:px-12 flex justify-between items-center bg-black/60 backdrop-blur-xl border-b border-white/5">
+    <div className="min-h-screen bg-[#050505] text-white selection:bg-indigo-500/30">
+      {/* Nav */}
+      <nav className="fixed top-0 w-full z-50 py-6 px-8 flex justify-between items-center bg-black/60 backdrop-blur-xl border-b border-white/5">
         <h1 className="text-[10px] uppercase tracking-[0.4em] font-black">Ayşegül Coşkun</h1>
-        <div className="flex gap-8 text-[9px] font-bold uppercase tracking-widest text-zinc-400">
-          <button className="hover:text-white transition cursor-pointer">Ana Sayfa</button>
-          <button onClick={() => window.location.reload()} className="hover:text-white transition cursor-pointer">Yenile</button>
-        </div>
+        <button onClick={() => setIsAdminOpen(true)} className="text-[10px] uppercase tracking-widest font-bold opacity-50 hover:opacity-100 transition flex items-center gap-2">
+          {isAuthorized ? <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> : <Zap className="w-3 h-3" />}
+          Yönetim
+        </button>
       </nav>
 
-      {/* Hero Header */}
+      {/* Header */}
       <header className="pt-48 pb-24 px-6 text-center max-w-4xl mx-auto">
-        <div className="relative inline-block p-[2px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 mb-8 shadow-2xl shadow-indigo-500/20">
-          <img src={data.profile.avatar} className="w-32 h-32 rounded-full border-4 border-black object-cover" alt="Profile" />
-          <div className="absolute -bottom-2 -right-2 bg-indigo-500 p-2 rounded-lg shadow-lg">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
+        <div className="relative inline-block p-[2px] rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 mb-8 shadow-2xl shadow-indigo-500/20">
+          <img src={data.profile.avatar} className="w-32 h-32 rounded-full border-4 border-black object-cover" alt="Avatar" />
         </div>
         <h2 className="text-5xl md:text-7xl mb-6 tracking-tighter lowercase flex items-center justify-center gap-2 font-bold">
           {data.profile.username}
-          <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-blue-400 fill-blue-400/10" />
+          <CheckCircle className="w-6 h-6 text-blue-400" />
         </h2>
-        <p className="text-zinc-400 text-lg md:text-xl font-light leading-relaxed max-w-2xl mx-auto italic whitespace-pre-line px-4">
-          {data.profile.bio}
-        </p>
+        <p className="text-zinc-400 text-lg md:text-xl font-light italic whitespace-pre-line px-4">{data.profile.bio}</p>
         
         <div className="flex justify-center gap-12 mt-12 border-t border-white/5 pt-12">
-          <div className="group cursor-default">
-            <span className="block text-2xl font-bold group-hover:text-indigo-400 transition">{data.posts.length}</span>
-            <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold">Paylaşım</span>
+          <div className="text-center">
+            <span className="block text-2xl font-bold">{data.posts.length}</span>
+            <span className="text-[9px] uppercase tracking-widest text-zinc-500">Paylaşım</span>
           </div>
-          <div className="group cursor-default">
-            <span className="block text-2xl font-bold group-hover:text-purple-400 transition">{data.profile.followers}</span>
-            <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold">Takipçi</span>
+          <div className="text-center">
+            <span className="block text-2xl font-bold">{data.profile.followers}</span>
+            <span className="text-[9px] uppercase tracking-widest text-zinc-500">Takipçi</span>
           </div>
         </div>
       </header>
 
-      {/* Gallery Grid */}
+      {/* Grid */}
       <main className="max-w-7xl mx-auto px-6 pb-40">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {data.posts.map((post) => (
-            <div key={post.id} className="p-5 group bg-zinc-900/40 border border-white/5 rounded-[32px] backdrop-blur-md hover:border-white/20 transition-all duration-500 hover:-translate-y-2">
+            <div key={post.id} className="p-5 group bg-zinc-900/40 border border-white/5 rounded-[32px] transition-all">
               <div className="overflow-hidden rounded-[24px] bg-black aspect-[4/5] relative">
-                <iframe 
-                  src={`https://www.instagram.com/p/${post.url}/embed`} 
-                  className="w-full h-full border-none pointer-events-auto" 
-                  scrolling="no"
-                  title={`post-${post.id}`}
-                ></iframe>
+                <iframe src={`https://www.instagram.com/p/${post.url}/embed`} className="w-full h-full border-none" scrolling="no"></iframe>
                 {isAuthorized && (
-                  <button onClick={() => deletePost(post.id)} className="absolute top-4 right-4 p-3 bg-red-500/90 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 z-10">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <button onClick={() => deletePost(post.id)} className="absolute top-4 right-4 p-3 bg-red-500/90 rounded-xl opacity-0 group-hover:opacity-100 transition z-10"><Trash2 className="w-4 h-4" /></button>
                 )}
               </div>
-              <div className="mt-6 px-2 flex flex-col justify-between min-h-[100px]">
-                <p className="text-[13px] text-zinc-400 leading-relaxed font-light italic flex-grow">
-                  "{post.description || 'Görsel içeriği.'}"
-                </p>
-                <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-zinc-600">
+              <div className="mt-6 px-2 min-h-[80px]">
+                <p className="text-[13px] text-zinc-400 italic font-light">"{post.description}"</p>
+                <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center text-zinc-600">
                    <div className="flex items-center gap-2">
                      <Heart className="w-3 h-3" />
-                     <span className="text-[10px] font-bold">{post.likes || 0}</span>
+                     <span className="text-[10px] font-bold">{post.likes}</span>
                    </div>
-                   <span className="text-[8px] uppercase font-black tracking-widest opacity-30">{post.id.slice(-6)}</span>
                 </div>
               </div>
             </div>
@@ -295,156 +242,60 @@ export default function App() {
         </div>
       </main>
 
-      {/* --- FLOATING CHAT BOT --- */}
-      <div className={`fixed bottom-28 right-8 w-80 bg-zinc-900/90 border border-white/10 rounded-[24px] shadow-2xl backdrop-blur-xl transition-all duration-500 transform z-[150] overflow-hidden ${isChatOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-0 opacity-0 translate-y-10'}`}>
-        <div className="p-4 border-b border-white/10 bg-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-             <span className="text-[10px] font-black uppercase tracking-widest">Ayşegül Bot ✨</span>
-          </div>
-          <button onClick={() => setIsChatOpen(false)}><X className="w-4 h-4 text-zinc-500" /></button>
-        </div>
-        <div className="h-64 overflow-y-auto p-4 space-y-4">
-          {chatMessages.length === 0 && (
-            <p className="text-[11px] text-zinc-500 text-center py-10">Selam! Ayşegül hakkında ne bilmek istersin? Mesela Urfa'da nerede yemek yenir sorabilirsin! 🥘</p>
-          )}
-          {chatMessages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] p-3 rounded-2xl text-[11px] ${m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-zinc-300'}`}>
-                {m.text}
-              </div>
-            </div>
-          ))}
-          {isChatLoading && <div className="text-[10px] text-zinc-500 animate-pulse italic">Yazıyor...</div>}
-          <div ref={chatEndRef} />
-        </div>
-        <div className="p-4 border-t border-white/10 flex gap-2">
-          <input 
-            type="text" 
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleChat()}
-            placeholder="Mesaj yaz..."
-            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none focus:border-indigo-500"
-          />
-          <button onClick={handleChat} className="bg-white text-black p-2 rounded-xl"><Send className="w-4 h-4" /></button>
-        </div>
-      </div>
-
-      {/* Admin & Chat Triggers */}
-      <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-[100]">
-        <button 
-          onClick={() => setIsChatOpen(!isChatOpen)}
-          className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
-        >
-          <MessageSquare className="w-6 h-6" />
-        </button>
-        <button 
-          onClick={() => setIsAdminOpen(true)}
-          className="w-14 h-14 bg-white text-black rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
-        >
-          <Zap className="w-6 h-6 fill-current" />
-        </button>
-      </div>
-
       {/* Admin Modal */}
       {isAdminOpen && (
         <div className="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4">
-          <div className="w-full max-w-4xl bg-zinc-900/50 border border-white/10 rounded-[40px] overflow-hidden flex flex-col max-h-[90vh] shadow-2xl">
+          <div className="w-full max-w-4xl bg-zinc-900 border border-white/10 rounded-[40px] overflow-hidden flex flex-col max-h-[90vh]">
             {!isAuthorized ? (
-              <div className="p-12 md:p-24 text-center">
-                <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-inner">
-                  <Lock className="w-8 h-8 text-white/50" />
-                </div>
-                <h3 className="text-[10px] mb-8 tracking-[0.4em] uppercase text-zinc-500 font-bold">Güvenli Bölge Girişi</h3>
+              <div className="p-12 text-center">
+                <Lock className="w-12 h-12 text-zinc-600 mx-auto mb-8" />
+                <h3 className="text-[10px] mb-8 tracking-[0.4em] uppercase text-zinc-500">Giriş Yap</h3>
                 <input 
                   type="password" 
                   value={adminPass}
                   onChange={(e) => setAdminPass(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                  className="w-full max-w-xs mx-auto block bg-white/5 border border-white/10 text-center text-3xl mb-12 tracking-[0.3em] py-4 rounded-2xl outline-none focus:border-indigo-500 transition-all font-light text-white" 
+                  className="w-full max-w-xs mx-auto block bg-white/5 border border-white/10 text-center text-3xl mb-12 py-4 rounded-2xl outline-none" 
                   placeholder="••••"
                 />
-                <button onClick={handleLogin} className="bg-white text-black py-4 px-12 rounded-2xl font-bold uppercase text-[10px] tracking-widest mx-auto block">Sistemi Aç</button>
-                <button onClick={() => setIsAdminOpen(false)} className="mt-8 text-zinc-600 text-[10px] block mx-auto uppercase tracking-widest font-bold">Vazgeç</button>
+                <button onClick={handleLogin} className="bg-white text-black py-4 px-12 rounded-2xl font-bold uppercase text-[10px]">Onayla</button>
+                <button onClick={() => setIsAdminOpen(false)} className="mt-8 text-zinc-600 text-[10px] uppercase">Kapat</button>
               </div>
             ) : (
               <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
-                  <span className="text-[9px] tracking-[0.4em] uppercase text-zinc-400 font-bold">Yönetim Paneli ✨ AI Powered</span>
-                  <button onClick={() => setIsAdminOpen(false)} className="hover:rotate-90 transition p-2 text-zinc-500"><X /></button>
+                <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                  <span className="text-[9px] uppercase tracking-widest text-indigo-400">Yönetim Aktif</span>
+                  <div className="flex gap-4">
+                    <button onClick={handleLogout} className="text-[9px] text-red-400 uppercase">Çıkış Yap</button>
+                    <button onClick={() => setIsAdminOpen(false)}><X /></button>
+                  </div>
                 </div>
-                
-                <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-12">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                    {/* Profil Düzenleme */}
-                    <div className="space-y-8">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                        <div className="flex items-center gap-4">
-                           <Settings className="w-5 h-5 text-indigo-400" />
-                           <h4 className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Global Yapılandırma</h4>
-                        </div>
-                        <div className="flex gap-2">
-                            <button 
-                            onClick={generateBioAI} 
-                            disabled={isGeneratingBio}
-                            className="flex items-center gap-2 text-[8px] bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20 hover:bg-indigo-500/20 transition disabled:opacity-50"
-                            >
-                            <Sparkles className={`w-3 h-3 ${isGeneratingBio ? 'animate-spin' : ''}`} />
-                            {isGeneratingBio ? 'ÜRETİLİYOR...' : '✨ BİYO'}
-                            </button>
-                            <button 
-                            onClick={generateAvatarIdea} 
-                            disabled={isGeneratingAvatar}
-                            className="flex items-center gap-2 text-[8px] bg-pink-500/10 text-pink-400 px-3 py-1 rounded-full border border-pink-500/20 hover:bg-pink-500/20 transition disabled:opacity-50"
-                            >
-                            <Camera className={`w-3 h-3 ${isGeneratingAvatar ? 'animate-spin' : ''}`} />
-                            {isGeneratingAvatar ? 'ARANIYOR...' : '✨ FOTO ÖNER'}
-                            </button>
-                        </div>
-                      </div>
+                <div className="flex-1 overflow-y-auto p-12 space-y-12">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-6">
+                      <h4 className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Profil Ayarları</h4>
                       <div className="space-y-4">
                         <div className="space-y-2">
-                           <label className="text-[9px] uppercase text-zinc-600 font-bold">Profil Fotoğrafı URL</label>
-                           <div className="flex gap-2">
-                             <div className="w-12 h-12 rounded-xl border border-white/10 overflow-hidden flex-shrink-0 bg-black">
-                                <img src={formProfile.avatar} className="w-full h-full object-cover" />
-                             </div>
-                             <input type="text" value={formProfile.avatar || ''} onChange={(e) => setFormProfile({...formProfile, avatar: e.target.value})} className="flex-1 bg-white/5 border border-white/10 p-4 rounded-2xl text-[10px] outline-none" placeholder="https://..." />
-                           </div>
+                           <label className="text-[9px] uppercase text-zinc-600">Fotoğraf URL</label>
+                           <input type="text" value={formProfile.avatar} onChange={(e) => setFormProfile({...formProfile, avatar: e.target.value})} className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-xs outline-none" />
                         </div>
                         <div className="space-y-2">
-                           <label className="text-[9px] uppercase text-zinc-600 font-bold">Görünür İsim</label>
-                           <input type="text" value={formProfile.name || ''} onChange={(e) => setFormProfile({...formProfile, name: e.target.value})} className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm outline-none" />
+                           <label className="text-[9px] uppercase text-zinc-600">İsim</label>
+                           <input type="text" value={formProfile.name} onChange={(e) => setFormProfile({...formProfile, name: e.target.value})} className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm outline-none" />
                         </div>
                         <div className="space-y-2">
-                           <label className="text-[9px] uppercase text-zinc-600 font-bold">Biyografi</label>
-                           <textarea value={formProfile.bio || ''} onChange={(e) => setFormProfile({...formProfile, bio: e.target.value})} className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm h-32 outline-none resize-none" />
+                           <label className="text-[9px] uppercase text-zinc-600">Biyografi</label>
+                           <textarea value={formProfile.bio} onChange={(e) => setFormProfile({...formProfile, bio: e.target.value})} className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm h-32 outline-none resize-none" />
                         </div>
-                        <button onClick={saveProfile} className="w-full bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-600 hover:text-white transition-all">Senkronize Et</button>
+                        <button onClick={saveProfile} className="w-full bg-indigo-600 py-4 rounded-2xl font-bold uppercase text-[10px]">Kaydet</button>
                       </div>
                     </div>
-
-                    {/* İçerik Ekleme */}
-                    <div className="space-y-8">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                        <div className="flex items-center gap-4">
-                          <Grid className="w-5 h-5 text-purple-400" />
-                          <h4 className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Akışa İçerik Ekle</h4>
-                        </div>
-                        <button 
-                          onClick={generateCaptionAI}
-                          disabled={isGeneratingCaption || !newPost.description}
-                          className="flex items-center gap-2 text-[8px] bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full border border-purple-500/20 hover:bg-purple-500/20 transition disabled:opacity-50"
-                        >
-                          <Sparkles className={`w-3 h-3 ${isGeneratingCaption ? 'animate-spin' : ''}`} />
-                          {isGeneratingCaption ? 'DÜZENLENİYOR...' : '✨ SİHİRBAZ'}
-                        </button>
-                      </div>
+                    <div className="space-y-6">
+                      <h4 className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Yeni Post Ekle</h4>
                       <div className="space-y-4">
-                        <input type="text" value={newPost.url} onChange={(e) => setNewPost({...newPost, url: e.target.value})} placeholder="Instagram URL / ID" className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm outline-none focus:border-purple-500 transition" />
-                        <textarea value={newPost.description} onChange={(e) => setNewPost({...newPost, description: e.target.value})} placeholder="İçerik anahtar kelimeleri veya taslak açıklama..." className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm h-32 outline-none focus:border-purple-500 transition resize-none" />
-                        <button onClick={addPost} className="w-full bg-white text-black py-4 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-zinc-200 transition-all shadow-xl">Veri Akışına Bas</button>
+                        <input type="text" value={newPost.url} onChange={(e) => setNewPost({...newPost, url: e.target.value})} placeholder="Instagram ID" className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm outline-none" />
+                        <textarea value={newPost.description} onChange={(e) => setNewPost({...newPost, description: e.target.value})} placeholder="Açıklama" className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl text-sm h-32 outline-none resize-none" />
+                        <button onClick={addPost} className="w-full bg-white text-black py-4 rounded-2xl font-bold uppercase text-[10px]">Ekle</button>
                       </div>
                     </div>
                   </div>
@@ -454,10 +305,36 @@ export default function App() {
           </div>
         </div>
       )}
+      
+      {/* Chat */}
+      <div className="fixed bottom-8 right-8 z-[100]">
+        <button onClick={() => setIsChatOpen(!isChatOpen)} className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition cursor-pointer">
+          <MessageSquare className="w-6 h-6" />
+        </button>
+      </div>
 
-      <footer className="py-20 text-center opacity-30">
-        <p className="text-[8px] uppercase tracking-[0.4em]">© 2026 Ayşegül Coşkun | Ultimate Hub ✨ AI Enhanced</p>
-      </footer>
+      {isChatOpen && (
+        <div className="fixed bottom-28 right-8 w-80 bg-zinc-900 border border-white/10 rounded-[24px] shadow-2xl z-[150] overflow-hidden">
+          <div className="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center">
+            <span className="text-[10px] font-bold">Ayşegül AI ✨</span>
+            <button onClick={() => setIsChatOpen(false)}><X className="w-4 h-4" /></button>
+          </div>
+          <div className="h-64 overflow-y-auto p-4 space-y-4">
+            {chatMessages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] p-3 rounded-2xl text-[11px] ${m.role === 'user' ? 'bg-indigo-600' : 'bg-white/10 text-zinc-300'}`}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="p-4 border-t border-white/10 flex gap-2">
+            <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleChat()} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none" placeholder="Sor..." />
+            <button onClick={handleChat} className="bg-white text-black p-2 rounded-xl"><Send className="w-4 h-4" /></button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
